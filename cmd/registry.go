@@ -8,17 +8,30 @@ import (
 	"github.com/spf13/viper"
 )
 
+var registryConfig registries.Config
+
 var registryCmd = &cobra.Command{
 	Use:   "registry",
 	Short: "Configure registry adapters",
 	Long:  `List, Add, or Delete registry adapters from configuration`,
+}
+
+var registryAddCmd = &cobra.Command{
+	Use:   "add",
+	Short: "Add a new registry adapter",
+	Long:  `Add a new registry adapter to the configuration`,
 	Run: func(cmd *cobra.Command, args []string) {
-		listRegistries()
+		addRegistry()
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(registryCmd)
+	registryAddCmd.Flags().StringVar(&registryConfig.Type, "type", "dockerhub", "Type of registry adapter to add")
+	registryAddCmd.Flags().StringVar(&registryConfig.Org, "org", "ansibleplaybookbundle", "Type of registry adapter to add")
+	registryAddCmd.Flags().StringVar(&registryConfig.URL, "url", "docker.io", "URL of registry adapter to add")
+	registryAddCmd.Flags().StringVar(&registryConfig.Name, "name", "docker", "Name of registry adapter to add")
+	registryCmd.AddCommand(registryAddCmd)
 }
 
 func updateCachedRegistries(registries []registries.Config) error {
@@ -28,6 +41,15 @@ func updateCachedRegistries(registries []registries.Config) error {
 }
 
 func addRegistry() {
+	reg, err := registries.NewRegistry(registryConfig, "ansible-service-broker")
+	if err != nil {
+		fmt.Printf("Error creating new registry adapter: %v", err)
+		return
+	}
+	currentReg := viper.Get("Registries")
+	fmt.Printf("Current: %v", currentReg)
+	fmt.Printf("new: %v", reg)
+	return
 }
 
 func listRegistries() {
