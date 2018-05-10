@@ -23,7 +23,7 @@ var listCmd = &cobra.Command{
 var dockerhubConfig = registries.Config{
 	Type:      "dockerhub",
 	Name:      "dh",
-	Org:       "ansibleplaybookbundle",
+	Org:       "dymurray",
 	URL:       "docker.io",
 	Tag:       "latest",
 	WhiteList: []string{".*-apb$"},
@@ -61,16 +61,15 @@ func getImages() ([]*apb.Spec, error) {
 
 func listImages() {
 	var specs []*apb.Spec = nil
-	conf := &Config{}
-	err := viper.Unmarshal(conf)
+	err := viper.UnmarshalKey("Specs", &specs)
 	if err != nil {
 		fmt.Println("Error unmarshalling config: ", err)
 		return
 	}
-	if len(conf.Specs) > 0 {
+	if len(specs) > 0 {
 		fmt.Println("Found specs already in config")
-		for _, s := range conf.Specs {
-			fmt.Printf("%v - %v\n", s.FQName, s.Description)
+		for _, s := range specs {
+			fmt.Printf("%v - %v - %v\n", s.FQName, s.Description, s.Image)
 		}
 		return
 	}
@@ -87,6 +86,6 @@ func listImages() {
 	}
 
 	for _, s := range specs {
-		fmt.Printf("%v - %v\n", s.FQName, s.Description)
+		fmt.Printf("%v - %v - %v\n", s.FQName, s.Description, s.Image)
 	}
 }

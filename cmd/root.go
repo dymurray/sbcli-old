@@ -17,7 +17,7 @@ var CfgFile string
 
 type Config struct {
 	Registries []registries.Config
-	Specs      []apb.Spec
+	Specs      []*apb.Spec
 }
 
 var rootCmd = &cobra.Command{
@@ -34,9 +34,6 @@ postgres database to my kubernetes cluster.`,
 			log.SetLevel(log.DebugLevel)
 		}
 	},
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Run has been invoked.")
-	},
 }
 
 func init() {
@@ -47,6 +44,7 @@ func init() {
 }
 
 func initConfig() {
+	viper.SetConfigType("json")
 	if CfgFile != "" {
 		viper.SetConfigFile(CfgFile)
 	} else {
@@ -57,15 +55,15 @@ func initConfig() {
 		}
 		viper.AddConfigPath(home)
 		viper.SetConfigName(".sbcli")
-		filePath := home + "/.sbcli.yml"
+		filePath := home + "/.sbcli.json"
 		if err := viper.ReadInConfig(); err != nil {
 			fmt.Println("Didn't find config file, creating one.")
-			_file, err := os.Create(filePath)
+			file, err := os.Create(filePath)
 			if err != nil {
 				fmt.Println(err)
 				os.Exit(1)
 			}
-			_file.WriteString("---\nregistries: []\nspecs: []\n")
+			file.WriteString("{}")
 		}
 	}
 
