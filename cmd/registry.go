@@ -9,6 +9,7 @@ import (
 )
 
 var registryConfig registries.Config
+var whitelist string
 
 var registryCmd = &cobra.Command{
 	Use:   "registry",
@@ -25,13 +26,26 @@ var registryAddCmd = &cobra.Command{
 	},
 }
 
+var registryListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List the configured registry adapters",
+	Long:  `List all registry adapters in the configuration`,
+	Run: func(cmd *cobra.Command, args []string) {
+		listRegistries()
+	},
+}
+
 func init() {
 	rootCmd.AddCommand(registryCmd)
 	registryAddCmd.Flags().StringVar(&registryConfig.Type, "type", "dockerhub", "Type of registry adapter to add")
 	registryAddCmd.Flags().StringVar(&registryConfig.Org, "org", "ansibleplaybookbundle", "Type of registry adapter to add")
 	registryAddCmd.Flags().StringVar(&registryConfig.URL, "url", "docker.io", "URL of registry adapter to add")
 	registryAddCmd.Flags().StringVar(&registryConfig.Name, "name", "docker", "Name of registry adapter to add")
+	registryAddCmd.Flags().StringVar(&whitelist, "whitelist", ".*-apb$", "Whitelist for configuration of registry adapter")
+	registryConfig.WhiteList = append(registryConfig.WhiteList, whitelist)
+
 	registryCmd.AddCommand(registryAddCmd)
+	registryCmd.AddCommand(registryListCmd)
 }
 
 func updateCachedRegistries(registries []registries.Config) error {
@@ -41,29 +55,38 @@ func updateCachedRegistries(registries []registries.Config) error {
 }
 
 func addRegistry() {
-	reg, err := registries.NewRegistry(registryConfig, "ansible-service-broker")
-	if err != nil {
-		fmt.Printf("Error creating new registry adapter: %v", err)
-		return
-	}
-	currentReg := viper.Get("Registries")
-	fmt.Printf("Current: %v", currentReg)
-	fmt.Printf("new: %v", reg)
-	return
-}
-
-func listRegistries() {
-	var registries []*registries.Config = nil
-	err := viper.UnmarshalKey("Registries", &registries)
+	//	reg, err := registries.NewRegistry(registryConfig, "ansible-service-broker")
+	//	if err != nil {
+	//		fmt.Printf("Error creating new registry adapter: %v", err)
+	//		return
+	//	}
+	var regList []registries.Config
+	err := viper.UnmarshalKey("Registries", &regList)
 	if err != nil {
 		fmt.Println("Error unmarshalling config: ", err)
 		return
 	}
-	if len(registries) > 0 {
-		fmt.Println("Found registries already in config")
-		for _, r := range registries {
-			fmt.Printf("%v - %v\n", r.Name, r.URL)
-		}
+
+	regList = append(regList, registryConfig)
+	updateCachedRegistries(regList)
+	return
+}
+
+func listRegistries() {
+	var regList []registries.Config
+	err := viper.UnmarshalKey("Registries", &regList)
+	if err != nil {
+		fmt.Println("Error unmarshalling config: ", err)
 		return
 	}
+	if len(regList) > 0 {
+		fmt.Println("Found registries already in config:")
+		for _, r := range regList {
+			fmt.Printf("name: %v - type: %v - URL: %v\n", r.Name, r.Type, r.URL)
+		}
+	} else {
+		fmt.Println("Found no registries in configuration. Try `sbcli registry add`.")
+	}
+	return
+
 }

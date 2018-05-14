@@ -20,15 +20,6 @@ var listCmd = &cobra.Command{
 	},
 }
 
-var dockerhubConfig = registries.Config{
-	Type:      "dockerhub",
-	Name:      "dh",
-	Org:       "dymurray",
-	URL:       "docker.io",
-	Tag:       "latest",
-	WhiteList: []string{".*-apb$"},
-}
-
 func init() {
 	rootCmd.AddCommand(listCmd)
 }
@@ -40,27 +31,42 @@ func updateCachedList(specs []*apb.Spec) error {
 }
 
 func getImages() ([]*apb.Spec, error) {
+	var regConfigList []registries.Config
+	var regList []registries.Registry
+	var specList []*apb.Spec
+	err := viper.UnmarshalKey("Registries", &regConfigList)
+	if err != nil {
+		fmt.Println("Error unmarshalling config: ", err)
+		return nil, err
+	}
+
 	authNamespace := ""
-	reg, err := registries.NewRegistry(dockerhubConfig, authNamespace)
-	if err != nil {
-		log.Error("Error from creating a NewRegistry")
-		log.Error(err)
-		return nil, err
+	for _, config := range regConfigList {
+		registry, err := registries.NewRegistry(config, authNamespace)
+		if err != nil {
+			log.Error("Error from creating a NewRegistry")
+			log.Error(err)
+			return nil, err
+		}
+		regList = append(regList, registry)
 	}
-
-	specs, count, err := reg.LoadSpecs()
-	if err != nil {
-		log.Errorf("registry: %v was unable to complete bootstrap - %v",
-			reg.RegistryName(), err)
-		return nil, err
+	for _, reg := range regList {
+		specs, count, err := reg.LoadSpecs()
+		if err != nil {
+			log.Errorf("registry: %v was unable to complete bootstrap - %v",
+				reg.RegistryName(), err)
+			return nil, err
+		}
+		log.Infof("Registry %v has %d bundles available from %d images scanned", reg.RegistryName(), len(specs), count)
+		specList = specs
 	}
+	fmt.Printf("Success! %v", specList)
 
-	log.Infof("Registry %v has %d bundles available from %d images scanned", reg.RegistryName(), len(specs), count)
-	return specs, nil
+	return specList, nil
 }
 
 func listImages() {
-	var specs []*apb.Spec = nil
+	var specs []*apb.Spec
 	err := viper.UnmarshalKey("Specs", &specs)
 	if err != nil {
 		fmt.Println("Error unmarshalling config: ", err)
@@ -79,6 +85,7 @@ func listImages() {
 		fmt.Println("Error getting images")
 		return
 	}
+	fmt.Printf("specs: %v", specs)
 	err = updateCachedList(specs)
 	if err != nil {
 		fmt.Println("Error updating cache")
