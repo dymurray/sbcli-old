@@ -11,7 +11,15 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var listCmd = &cobra.Command{
+var Refresh bool
+
+var bundleCmd = &cobra.Command{
+	Use:   "bundle",
+	Short: "Interact with ServiceBundle images",
+	Long:  `Interact with and list ServiceBundles from configured registry adapters`,
+}
+
+var bundleListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List ServiceBundle images",
 	Long:  `List ServiceBundles from a registry adapter`,
@@ -21,7 +29,9 @@ var listCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(listCmd)
+	rootCmd.AddCommand(bundleCmd)
+	bundleListCmd.Flags().BoolVarP(&Refresh, "refresh", "r", false, "refresh list of specs")
+	bundleCmd.AddCommand(bundleListCmd)
 }
 
 func updateCachedList(specs []*apb.Spec) error {
