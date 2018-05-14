@@ -68,9 +68,8 @@ func getImages() ([]*apb.Spec, error) {
 			return nil, err
 		}
 		log.Infof("Registry %v has %d bundles available from %d images scanned", reg.RegistryName(), len(specs), count)
-		specList = specs
+		specList = append(specList, specs...)
 	}
-	fmt.Printf("Success! %v", specList)
 
 	return specList, nil
 }
@@ -82,10 +81,10 @@ func listImages() {
 		fmt.Println("Error unmarshalling config: ", err)
 		return
 	}
-	if len(specs) > 0 {
+	if len(specs) > 0 && Refresh == false {
 		fmt.Println("Found specs already in config")
 		for _, s := range specs {
-			fmt.Printf("%v - %v - %v\n", s.FQName, s.Description, s.Image)
+			fmt.Printf("%v - %v\n", s.FQName, s.Image)
 		}
 		return
 	}
@@ -103,6 +102,6 @@ func listImages() {
 	}
 
 	for _, s := range specs {
-		fmt.Printf("%v - %v - %v\n", s.FQName, s.Description, s.Image)
+		fmt.Printf("%v - %v\n", s.FQName, s.Image)
 	}
 }
